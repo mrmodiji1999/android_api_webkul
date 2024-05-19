@@ -10,7 +10,7 @@ import com.example.a26api.sampledata.Product
 import com.google.android.material.imageview.ShapeableImageView
 import com.squareup.picasso.Picasso
 
-class MyAdapter(private val context: Activity, private val productArrayList: MutableList<Product>) :
+class MyAdapter(val context: Activity, val productList: MutableList<Product>) :
     RecyclerView.Adapter<MyAdapter.MyViewHolder>() {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MyViewHolder {
@@ -18,19 +18,23 @@ class MyAdapter(private val context: Activity, private val productArrayList: Mut
         return MyViewHolder(itemView)
     }
 
-    override fun getItemCount(): Int {
-        return productArrayList.size
-    }
-
     override fun onBindViewHolder(holder: MyViewHolder, position: Int) {
-        val currentItem = productArrayList[position]
-        holder.title.text = currentItem.title
-
-        Picasso.get().load(currentItem.thumbnail).into(holder.image)
+        val currentItem = productList[position]
+        holder.title.text = currentItem.name
+        Picasso.get().load(currentItem.image_link).into(holder.image)
     }
 
-    class MyViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        var title: TextView = itemView.findViewById(R.id.productTitle)
-        var image: ShapeableImageView = itemView.findViewById(R.id.productImage)
+    override fun getItemCount(): Int {
+        return productList.size
+    }
+
+    fun addData(newData: List<Product>) {
+        productList.addAll(newData)
+        notifyDataSetChanged()
+    }
+
+    inner class MyViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        val title: TextView = itemView.findViewById(R.id.productTitle)
+        val image: ShapeableImageView = itemView.findViewById(R.id.productImage)
     }
 }

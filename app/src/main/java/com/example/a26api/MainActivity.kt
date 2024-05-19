@@ -3,8 +3,7 @@ package com.example.a26api
 import android.os.Bundle
 import android.util.Log
 import android.view.View
-import android.widget.ProgressBar
-import android.widget.Toast
+import android.widget.FrameLayout
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -18,84 +17,83 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 class MainActivity : AppCompatActivity() {
 
-    lateinit var recyclerView: RecyclerView
-    lateinit var myAdapter: MyAdapter
-    private var loadingPB: ProgressBar? = null
-
-    private val limit = 10
-    private var skip = 0
+    private lateinit var recyclerView: RecyclerView
+    private lateinit var myAdapter: MyAdapter
+    private lateinit var progressLayout: FrameLayout
+    private var currentPage = 1
+    private var itemCountLoaded = 0
     private var isLoading = false
-    private var isLastPage = false
-    private val productList = mutableListOf<Product>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         recyclerView = findViewById(R.id.recyclerView)
-        loadingPB = findViewById(R.id.progressBar)
+        progressLayout = findViewById(R.id.progressLayout)
 
-        myAdapter = MyAdapter(this, productList)
-        recyclerView.adapter = myAdapter
         recyclerView.layoutManager = LinearLayoutManager(this)
+        myAdapter = MyAdapter(this, mutableListOf())
+        recyclerView.adapter = myAdapter
 
-        // Adding scroll listener to RecyclerView
+        // Set up pagination listener
         recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 super.onScrolled(recyclerView, dx, dy)
                 val layoutManager = recyclerView.layoutManager as LinearLayoutManager
-                val visibleItemCount = layoutManager.childCount
+                val lastVisibleItemPosition = layoutManager.findLastVisibleItemPosition()
                 val totalItemCount = layoutManager.itemCount
-                val firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition()
-
-                if (!isLoading && !isLastPage) {
-                    if ((visibleItemCount + firstVisibleItemPosition) >= totalItemCount && firstVisibleItemPosition >= 0) {
-                        loadMoreItems()
+                if (!isLoading && totalItemCount <= lastVisibleItemPosition + 5) {
+                    // Load more data if the user is close to the end of the list
+                    if (itemCountLoaded >= 10) {
+                        loadData(++currentPage)
                     }
-                } else if (isLastPage && (visibleItemCount + firstVisibleItemPosition) >= totalItemCount && firstVisibleItemPosition >= 0) {
-                    Toast.makeText(this@MainActivity, "You have reached the end", Toast.LENGTH_SHORT).show()
                 }
             }
         })
 
-        loadMoreItems()
+        // Load initial data
+        loadData(currentPage)
     }
 
-    private fun loadMoreItems() {
+    private fun loadData(page: Int) {
         isLoading = true
-        loadingPB?.visibility = View.VISIBLE
+        progressLayout.visibility = View.VISIBLE // Show progress bar
 
         val retrofitBuilder = Retrofit.Builder()
-            .baseUrl("https://dummyjson.com/")
+            .baseUrl("https://test.hijab-deutschland.com/api/")
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(ApiInterface::class.java)
 
-        val retrofitData = retrofitBuilder.getProductData(limit, skip)
+        val retrofitData = retrofitBuilder.getProductData(
+            page,
+            1, // langId
+            "", // customerId
+            32, // categoryId
+            392, // width
+            1, // currencyId
+            "BKBGZ6IEC4FEME5ZTBEZS5SSQC4VSX9X",
+            "json"
+        )
 
         retrofitData.enqueue(object : Callback<MyData?> {
             override fun onResponse(call: Call<MyData?>, response: Response<MyData?>) {
-                val responseBody = response.body()
-                if (responseBody != null) {
-                    productList.addAll(responseBody.products)
-                    myAdapter.notifyDataSetChanged()
-                    skip += limit
-                    isLoading = false
-                    loadingPB?.visibility = View.GONE
-                    if (responseBody.products.size < limit) {
-                        isLastPage = true
-                        Toast.makeText(this@MainActivity, "You have reached the end", Toast.LENGTH_SHORT).show()
-                    }
+                if (response.isSuccessful) {
+                    val responseBody = response.body()
+                    val productList = responseBody?.products?.allproducts?.product ?: emptyList()
+                    itemCountLoaded += productList.size
+                    myAdapter.addData(productList)
                 } else {
-                    isLoading = false
-                    loadingPB?.visibility = View.GONE
+                    Log.e("MainActivity", "Failed to fetch data: ${response.code()}")
                 }
+                isLoading = false
+                progressLayout.visibility = View.GONE // Hide progress bar after loading
             }
 
             override fun onFailure(call: Call<MyData?>, t: Throwable) {
-                Log.d("MainActivity", "onFailure: " + t.message)
+                Log.e("MainActivity", "Failed to fetch data: ${t.message}")
                 isLoading = false
-                loadingPB?.visibility = View.GONE
+                progressLayout.visibility = View.GONE // Hide progress bar after loading
             }
         })
     }

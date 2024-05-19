@@ -1,15 +1,14 @@
 package com.example.a26api.sampledata
 
 data class Product(
-    val brand: String,
-    val category: String,
-    val description: String,
-    val discountPercentage: Double,
-    val id: Int,
-    val images: List<String>,
-    val price: Int,
-    val rating: Double,
-    val stock: Int,
-    val thumbnail: String,
-    val title: String
+    val display_addtocart: String,
+    val id_product: String,
+    val id_product_attribute: String,
+    val image_link: String,
+    val name: String,
+    val old_price: String,
+    val price: String,
+    val quantity: String,
+    val reduction_amount: String,
+    val show_price: String
 )

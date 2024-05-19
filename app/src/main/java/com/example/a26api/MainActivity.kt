@@ -2,13 +2,14 @@ package com.example.a26api
 
 import android.os.Bundle
 import android.util.Log
+import android.view.View
+import android.widget.ProgressBar
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.example.a26api.sampledata.Allproducts
-//import com.example.a26api.sampledata.Allproducts
 import com.example.a26api.sampledata.MyData
-import com.example.a26api.sampledata.Products
+import com.example.a26api.sampledata.Product
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -19,52 +20,83 @@ class MainActivity : AppCompatActivity() {
 
     lateinit var recyclerView: RecyclerView
     lateinit var myAdapter: MyAdapter
+    private var loadingPB: ProgressBar? = null
+
+    private val limit = 10
+    private var skip = 0
+    private var isLoading = false
+    private var isLastPage = false
+    private val productList = mutableListOf<Product>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         recyclerView = findViewById(R.id.recyclerView)
+        loadingPB = findViewById(R.id.progressBar)
+
+        myAdapter = MyAdapter(this, productList)
+        recyclerView.adapter = myAdapter
+        recyclerView.layoutManager = LinearLayoutManager(this)
+
+        // Adding scroll listener to RecyclerView
+        recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                super.onScrolled(recyclerView, dx, dy)
+                val layoutManager = recyclerView.layoutManager as LinearLayoutManager
+                val visibleItemCount = layoutManager.childCount
+                val totalItemCount = layoutManager.itemCount
+                val firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition()
+
+                if (!isLoading && !isLastPage) {
+                    if ((visibleItemCount + firstVisibleItemPosition) >= totalItemCount && firstVisibleItemPosition >= 0) {
+                        loadMoreItems()
+                    }
+                } else if (isLastPage && (visibleItemCount + firstVisibleItemPosition) >= totalItemCount && firstVisibleItemPosition >= 0) {
+                    Toast.makeText(this@MainActivity, "You have reached the end", Toast.LENGTH_SHORT).show()
+                }
+            }
+        })
+
+        loadMoreItems()
+    }
+
+    private fun loadMoreItems() {
+        isLoading = true
+        loadingPB?.visibility = View.VISIBLE
 
         val retrofitBuilder = Retrofit.Builder()
-            .baseUrl("https://test.hijab-deutschland.com/api/")
+            .baseUrl("https://dummyjson.com/")
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(ApiInterface::class.java)
 
-        val retrofitData = retrofitBuilder.getProductData(
-
-            1,
-            1,
-            "", // Pass customer ID if available
-            32,
-            392,
-            1,
-            "BKBGZ6IEC4FEME5ZTBEZS5SSQC4VSX9X",
-            "json"
-        )
-
-
+        val retrofitData = retrofitBuilder.getProductData(limit, skip)
 
         retrofitData.enqueue(object : Callback<MyData?> {
-
             override fun onResponse(call: Call<MyData?>, response: Response<MyData?>) {
-                // if api call is a success, then use the data of API and show in your app
-                var responseBody = response.body()
-                val productList = responseBody?.products?.allproducts?.product!!
-
-                myAdapter = MyAdapter(this@MainActivity, productList)
-                recyclerView.adapter = myAdapter
-                recyclerView.layoutManager = LinearLayoutManager(this@MainActivity)
+                val responseBody = response.body()
+                if (responseBody != null) {
+                    productList.addAll(responseBody.products)
+                    myAdapter.notifyDataSetChanged()
+                    skip += limit
+                    isLoading = false
+                    loadingPB?.visibility = View.GONE
+                    if (responseBody.products.size < limit) {
+                        isLastPage = true
+                        Toast.makeText(this@MainActivity, "You have reached the end", Toast.LENGTH_SHORT).show()
+                    }
+                } else {
+                    isLoading = false
+                    loadingPB?.visibility = View.GONE
+                }
             }
 
             override fun onFailure(call: Call<MyData?>, t: Throwable) {
-                // if api call fails
-                Log.d("Main Activity ", "onFailure: " + t.message)
+                Log.d("MainActivity", "onFailure: " + t.message)
+                isLoading = false
+                loadingPB?.visibility = View.GONE
             }
         })
-
-
-
     }
 }

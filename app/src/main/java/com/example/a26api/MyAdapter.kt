@@ -10,9 +10,8 @@ import com.example.a26api.sampledata.Product
 import com.google.android.material.imageview.ShapeableImageView
 import com.squareup.picasso.Picasso
 
-class MyAdapter(val context : Activity, val productArrayList : List<Product>) :
-RecyclerView.Adapter<MyAdapter.MyViewHolder>(){
-
+class MyAdapter(private val context: Activity, private val productArrayList: MutableList<Product>) :
+    RecyclerView.Adapter<MyAdapter.MyViewHolder>() {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MyViewHolder {
         val itemView = LayoutInflater.from(context).inflate(R.layout.eachitem, parent, false)
@@ -25,19 +24,13 @@ RecyclerView.Adapter<MyAdapter.MyViewHolder>(){
 
     override fun onBindViewHolder(holder: MyViewHolder, position: Int) {
         val currentItem = productArrayList[position]
-        holder.title.text = currentItem.name
+        holder.title.text = currentItem.title
 
-        Picasso.get().load(currentItem.image_link).into(holder.image);
+        Picasso.get().load(currentItem.thumbnail).into(holder.image)
     }
 
-    class MyViewHolder(itemView : View) : RecyclerView.ViewHolder(itemView){
-        var title : TextView
-        var image : ShapeableImageView
-
-        init {
-            title = itemView.findViewById(R.id.productTitle)
-            image = itemView.findViewById(R.id.productImage)
-        }
+    class MyViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        var title: TextView = itemView.findViewById(R.id.productTitle)
+        var image: ShapeableImageView = itemView.findViewById(R.id.productImage)
     }
-
 }

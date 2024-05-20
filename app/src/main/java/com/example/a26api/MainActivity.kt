@@ -60,20 +60,13 @@ class MainActivity : AppCompatActivity() {
         progressLayout.visibility = View.VISIBLE // Show progress bar
 
         val retrofitBuilder = Retrofit.Builder()
-            .baseUrl("https://test.hijab-deutschland.com/api/")
+            .baseUrl("")
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(ApiInterface::class.java)
 
         val retrofitData = retrofitBuilder.getProductData(
-            page,
-            1, // langId
-            "", // customerId
-            32, // categoryId
-            392, // width
-            1, // currencyId
-            "BKBGZ6IEC4FEME5ZTBEZS5SSQC4VSX9X",
-            "json"
+
         )
 
         retrofitData.enqueue(object : Callback<MyData?> {
